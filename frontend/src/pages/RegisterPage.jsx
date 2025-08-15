@@ -3,12 +3,26 @@
 import { useState } from "react"
 import { useNavigate, Link } from "react-router-dom"
 import axios from "axios"
-import { User, Mail, Lock, MapPin, Phone, Shield, Key, Eye, EyeOff, AlertCircle, CheckCircle } from 'lucide-react'
+import {
+  User,
+  Mail,
+  Lock,
+  MapPin,
+  Phone,
+  Shield,
+  Key,
+  Eye,
+  EyeOff,
+  AlertCircle,
+  CheckCircle,
+  Clock,
+} from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 import { Button } from "../components/ui/Button"
 import { Input } from "../components/ui/Input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/Card"
 import { Badge } from "../components/ui/Badge"
+import { toast } from "react-toastify"
 
 const RegisterPage = () => {
   const [formData, setFormData] = useState({
@@ -28,6 +42,8 @@ const RegisterPage = () => {
   const [success, setSuccess] = useState(false)
   const [loading, setLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
+  const [registrationComplete, setRegistrationComplete] = useState(false)
+  const [requiresApproval, setRequiresApproval] = useState(false)
   const navigate = useNavigate()
 
   const handleChange = (e) => {
@@ -37,8 +53,7 @@ const RegisterPage = () => {
   const sendOtp = async () => {
     const { email, name } = formData
     if (!email || !name) {
-      setError("Name and Email are required to send OTP")
-      setTimeout(() => setError(""), 3000)
+      toast.warning("Name and Email are required to send OTP")
       return
     }
 
@@ -48,13 +63,11 @@ const RegisterPage = () => {
       if (res.data.success) {
         setOtpSent(true)
         setError("")
-        setSuccess("OTP sent to your email successfully!")
-        setTimeout(() => setSuccess(""), 3000)
+        toast.success("OTP sent to your email successfully!")
       }
     } catch (err) {
       console.error(err)
-      setError("Failed to send OTP. Please try again.")
-      setTimeout(() => setError(""), 3000)
+      toast.error("Failed to send OTP. Please try again.")
     } finally {
       setLoading(false)
     }
@@ -62,8 +75,7 @@ const RegisterPage = () => {
 
   const verifyOtp = async () => {
     if (!otp) {
-      setError("Please enter the OTP")
-      setTimeout(() => setError(""), 3000)
+      toast.warning("Please enter the OTP")
       return
     }
 
@@ -75,15 +87,12 @@ const RegisterPage = () => {
       })
       if (res.data.verified) {
         setVerified(true)
-        setSuccess("OTP verified successfully! You can now complete registration.")
-        setTimeout(() => setSuccess(""), 3000)
+        toast.success("OTP verified successfully! You can now complete registration.")
       } else {
-        setError("Invalid OTP. Please try again.")
-        setTimeout(() => setError(""), 3000)
+        toast.error("Invalid OTP. Please try again.")
       }
     } catch (err) {
-      setError("OTP verification failed. Please try again.")
-      setTimeout(() => setError(""), 3000)
+      toast.error("OTP verification failed. Please try again.")
     } finally {
       setLoading(false)
     }
@@ -92,23 +101,26 @@ const RegisterPage = () => {
   const handleSubmit = async (e) => {
     e.preventDefault()
     if (!verified) {
-      setError("Please verify your OTP before registering.")
-      setTimeout(() => setError(""), 3000)
+      toast.warning("Please verify your OTP before registering.")
       return
     }
 
     setLoading(true)
     try {
-      await axios.post("http://localhost:5000/api/auth/register", formData)
-      setSuccess("Registration successful! Redirecting to login...")
-      setTimeout(() => {
-        setSuccess(false)
-        navigate("/")
-      }, 2000)
+      const response = await axios.post("http://localhost:5000/api/auth/register", formData)
+      const { requiresApproval: needsApproval } = response.data
+
+      setRegistrationComplete(true)
+      setRequiresApproval(needsApproval)
+
+      if (needsApproval) {
+        toast.success("Registration successful! Your responder account is pending admin approval.")
+      } else {
+        toast.success("Registration successful! You can now sign in.")
+      }
     } catch (err) {
       console.error(err)
-      setError("Registration failed. Please try again.")
-      setTimeout(() => setError(""), 3000)
+      toast.error("Registration failed. Please try again.")
     } finally {
       setLoading(false)
     }
@@ -119,37 +131,85 @@ const RegisterPage = () => {
     { value: "responder", label: "Responder", description: "Respond to emergency alerts" },
   ]
 
+  if (registrationComplete) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/5 via-background to-secondary/5 p-4">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95, y: 20 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="w-full max-w-md"
+        >
+          <Card className="shadow-2xl border-0 bg-card/50 backdrop-blur-sm">
+            <CardHeader className="text-center space-y-4">
+              <div
+                className={`mx-auto w-16 h-16 rounded-full flex items-center justify-center ${
+                  requiresApproval ? "bg-orange-100 dark:bg-orange-950/20" : "bg-green-100 dark:bg-green-950/20"
+                }`}
+              >
+                {requiresApproval ? (
+                  <Clock className="h-8 w-8 text-orange-600" />
+                ) : (
+                  <CheckCircle className="h-8 w-8 text-green-600" />
+                )}
+              </div>
+              <div>
+                <CardTitle className="text-2xl font-bold">
+                  {requiresApproval ? "Registration Pending" : "Registration Complete"}
+                </CardTitle>
+                <CardDescription className="text-base">
+                  {requiresApproval
+                    ? "Your responder account is awaiting approval"
+                    : "Welcome to Emergency Response System"}
+                </CardDescription>
+              </div>
+            </CardHeader>
+
+            <CardContent className="text-center space-y-6">
+              <div className="space-y-4">
+                {requiresApproval ? (
+                  <>
+                    <p className="text-muted-foreground">
+                      Thank you for registering as a responder! Your account has been created successfully, but it
+                      requires admin approval before you can access responder features.
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-muted-foreground">
+                      Your account has been created successfully! You can now sign in and start using the Emergency
+                      Response System.
+                    </p>
+                    <div className="p-4 bg-green-50 dark:bg-green-950/20 rounded-lg">
+                      <p className="text-sm text-green-700 dark:text-green-400">
+                        Welcome to our community of emergency responders and users working together to save lives.
+                      </p>
+                    </div>
+                  </>
+                )}
+              </div>
+
+              <div className="space-y-3">
+                <Button onClick={() => navigate("/")} className="w-full">
+                  {requiresApproval ? "Back to Login" : "Sign In Now"}
+                </Button>
+                <p className="text-xs text-muted-foreground">
+                  {requiresApproval
+                    ? "You can still sign in, but responder features will be available after approval."
+                    : "Ready to make a difference in emergency situations."}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/5 via-background to-secondary/5 p-4">
       {/* Status Messages */}
-      <AnimatePresence>
-        {error && (
-          <motion.div
-            className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50"
-            initial={{ opacity: 0, y: -50 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -50 }}
-          >
-            <div className="bg-destructive text-destructive-foreground px-6 py-3 rounded-lg shadow-lg flex items-center space-x-2">
-              <AlertCircle className="h-4 w-4" />
-              <span>{error}</span>
-            </div>
-          </motion.div>
-        )}
-        {success && (
-          <motion.div
-            className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50"
-            initial={{ opacity: 0, y: -50 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -50 }}
-          >
-            <div className="bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg flex items-center space-x-2">
-              <CheckCircle className="h-4 w-4" />
-              <span>{success}</span>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      
 
       {/* Registration Form */}
       <motion.div
@@ -242,7 +302,13 @@ const RegisterPage = () => {
                       />
                     </div>
                   </div>
-                  <Button type="button" onClick={verifyOtp} disabled={loading || !otp} className="w-full" variant="success">
+                  <Button
+                    type="button"
+                    onClick={verifyOtp}
+                    disabled={loading || !otp}
+                    className="w-full"
+                    variant="success"
+                  >
                     {loading ? (
                       <div className="flex items-center space-x-2">
                         <div className="loading-spinner" />
@@ -259,7 +325,9 @@ const RegisterPage = () => {
               ) : (
                 <div className="flex items-center space-x-2 p-3 bg-green-50 dark:bg-green-950/20 rounded-lg">
                   <CheckCircle className="h-5 w-5 text-green-600" />
-                  <span className="text-sm font-medium text-green-700 dark:text-green-400">Email verified successfully!</span>
+                  <span className="text-sm font-medium text-green-700 dark:text-green-400">
+                    Email verified successfully!
+                  </span>
                 </div>
               )}
 
@@ -367,6 +435,9 @@ const RegisterPage = () => {
                               <div className="text-sm">
                                 <div className="font-medium">{role.label}</div>
                                 <div className="text-muted-foreground">{role.description}</div>
+                                {role.value === "responder" && (
+                                  <div className="text-xs text-orange-600 mt-1">Requires admin approval</div>
+                                )}
                               </div>
                             </div>
                             {formData.role === role.value && (

@@ -31,7 +31,7 @@ router.post('/', authenticate, async (req, res) => {
       <p><strong>Severity:</strong> ${alert.severity}</p>
       <p><strong>Description:</strong> ${alert.description || 'N/A'}</p>
     `;
-    // await sendAlertEmail(emails, subject, html);
+    await sendAlertEmail(emails, subject, html);
 
     res.status(201).json({ message: 'User alert created and responders notified' });
   } catch (err) {

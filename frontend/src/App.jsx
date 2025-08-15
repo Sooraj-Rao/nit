@@ -14,6 +14,8 @@ import UserDashboard from "./pages/user/UserDashboard";
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
 import { getUserRole, isAuthenticated } from "./utils/auth";
+import { ToastContainer, toast } from "react-toastify";
+
 import DonationPage from "./pages/DonationPage";
 
 // Admin subpages
@@ -60,6 +62,18 @@ const Layout = ({ children }) => {
 function App() {
   return (
     <ThemeProvider>
+       <ToastContainer
+        position="top-right"
+        autoClose={5000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="light"
+      />
       <Router>
         <Layout>
           <Routes>

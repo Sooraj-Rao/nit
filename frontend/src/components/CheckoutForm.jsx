@@ -1,85 +1,78 @@
-import { useState } from "react";
-import { CardElement, useStripe, useElements } from "@stripe/react-stripe-js";
-import { useNavigate } from "react-router-dom";
-import {
-  User,
-  Mail,
-  CreditCard,
-  IndianRupee,
-  Loader2,
-  CheckCircle,
-} from "lucide-react";
-import { Button } from "./ui/Button";
-import { Input } from "./ui/Input";
-import { Card, CardContent } from "./ui/Card";
-import { useTheme } from "../context/theme-context";
+"use client"
+
+import { useState } from "react"
+import { CardElement, useStripe, useElements } from "@stripe/react-stripe-js"
+import { useNavigate } from "react-router-dom"
+import { User, Mail, IndianRupee, Loader2, CheckCircle } from "lucide-react"
+import { Button } from "./ui/Button"
+import { Input } from "./ui/Input"
+import { Card, CardContent } from "./ui/Card"
+import { useTheme } from "../context/theme-context"
+import { toast } from "react-toastify"
 
 const CheckoutForm = ({ onSuccess, redirectTo }) => {
-  const stripe = useStripe();
-  const elements = useElements();
-  const { theme } = useTheme();
+  const stripe = useStripe()
+  const elements = useElements()
+  const { theme } = useTheme()
 
-  const navigate = useNavigate();
+  const navigate = useNavigate()
 
-  const [loading, setLoading] = useState(false);
-  const [amount, setAmount] = useState("");
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [success, setSuccess] = useState(false);
+  const [loading, setLoading] = useState(false)
+  const [amount, setAmount] = useState("")
+  const [name, setName] = useState("")
+  const [email, setEmail] = useState("")
+  const [success, setSuccess] = useState(false)
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
+    e.preventDefault()
+    setLoading(true)
 
-    if (!stripe || !elements) return;
+    if (!stripe || !elements) return
 
     if (Number(amount) < 50) {
-      alert("Minimum donation amount is ₹50.");
-      setLoading(false);
-      return;
+      toast.warning("Minimum donation amount is ₹50.")
+      setLoading(false)
+      return
     }
 
     try {
-      const res = await fetch(
-        "http://localhost:5000/api/create-payment-intent",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ amount, name, email }),
-        }
-      );
+      const res = await fetch("http://localhost:5000/api/create-payment-intent", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ amount, name, email }),
+      })
 
-      const data = await res.json();
+      const data = await res.json()
 
-      if (!res.ok) throw new Error(data.error || "Something went wrong");
+      if (!res.ok) throw new Error(data.error || "Something went wrong")
 
       const result = await stripe.confirmCardPayment(data.clientSecret, {
         payment_method: {
           card: elements.getElement(CardElement),
         },
-      });
+      })
 
       if (result.error) {
-        alert(result.error.message);
+        toast.error(result.error.message)
       } else if (result.paymentIntent.status === "succeeded") {
-        setSuccess(true);
+        setSuccess(true)
         setTimeout(() => {
           if (typeof onSuccess === "function") {
-            onSuccess();
+            onSuccess()
           } else if (redirectTo) {
-            navigate(redirectTo);
+            navigate(redirectTo)
           } else {
-            navigate("/");
+            navigate("/")
           }
-        }, 2000);
+        }, 2000)
       }
     } catch (err) {
-      console.error("Error:", err);
-      alert(err.message || "Payment failed");
+      console.error("Error:", err)
+      toast.error(err.message || "Payment failed")
     }
 
-    setLoading(false);
-  };
+    setLoading(false)
+  }
 
   if (success) {
     return (
@@ -87,14 +80,10 @@ const CheckoutForm = ({ onSuccess, redirectTo }) => {
         <div className="w-16 h-16 bg-green-100 dark:bg-green-950/20 rounded-full flex items-center justify-center mx-auto">
           <CheckCircle className="h-8 w-8 text-green-600" />
         </div>
-        <h3 className="text-xl font-semibold text-green-700 dark:text-green-400">
-          Payment Successful!
-        </h3>
-        <p className="text-muted-foreground">
-          Thank you for your generous donation. You're making a real difference!
-        </p>
+        <h3 className="text-xl font-semibold text-green-700 dark:text-green-400">Payment Successful!</h3>
+        <p className="text-muted-foreground">Thank you for your generous donation. You're making a real difference!</p>
       </div>
-    );
+    )
   }
 
   return (
@@ -168,8 +157,8 @@ const CheckoutForm = ({ onSuccess, redirectTo }) => {
         <label className="text-sm font-medium">Card Information</label>
         <Card className="pt-6">
           <CardContent className="p-0">
-            <div className="relative  ">
-              <div className="pl-10s">
+            <div className="relative">
+              <div className="pl-10">
                 <CardElement
                   options={{
                     style: {
@@ -190,12 +179,7 @@ const CheckoutForm = ({ onSuccess, redirectTo }) => {
       </div>
 
       {/* Submit Button */}
-      <Button
-        type="submit"
-        disabled={!stripe || loading}
-        className="w-full"
-        size="lg"
-      >
+      <Button type="submit" disabled={!stripe || loading} className="w-full" size="lg">
         {loading ? (
           <div className="flex items-center space-x-2">
             <Loader2 className="h-4 w-4 animate-spin" />
@@ -214,7 +198,7 @@ const CheckoutForm = ({ onSuccess, redirectTo }) => {
         <p>🔒 Your payment information is secure and encrypted</p>
       </div>
     </form>
-  );
-};
+  )
+}
 
-export default CheckoutForm;
+export default CheckoutForm

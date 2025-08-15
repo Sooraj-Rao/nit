@@ -32,6 +32,7 @@ import { Badge } from "../../components/ui/Badge";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { Link } from "react-router-dom";
+import { toast } from "react-toastify";
 
 // Fix for Leaflet marker icons
 delete L.Icon.Default.prototype._getIconUrl;
@@ -218,7 +219,7 @@ const UserDashboard = () => {
         },
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      alert("Emergency reported successfully!");
+      toast.success("Emergency reported successfully!");
       setIncident("");
       setLocation({ lat: null, lng: null, address: "" });
       setLocationInput("");
@@ -234,7 +235,7 @@ const UserDashboard = () => {
       }
       fetchUserAlerts();
     } catch (err) {
-      alert("Failed to report emergency");
+      toast.error("Failed to report emergency");
     }
   };
 
@@ -303,7 +304,7 @@ const UserDashboard = () => {
         });
         fetchUserAlerts();
       } catch (err) {
-        alert("Failed to delete");
+        toast.error("Failed to delete");
       }
     }
   };
@@ -330,7 +331,7 @@ const UserDashboard = () => {
       setEditingAlertId(null);
       fetchUserAlerts();
     } catch (err) {
-      alert("Failed to update alert");
+      toast.error("Failed to update alert");
     }
   };
 

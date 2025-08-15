@@ -3,12 +3,13 @@
 import { useState } from "react"
 import { useNavigate, Link } from "react-router-dom"
 import axios from "axios"
-import { Mail, Lock, Shield, Eye, EyeOff, AlertCircle } from "lucide-react"
+import { Mail, Lock, Shield, Eye, EyeOff, AlertCircle, Clock } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 import ReCAPTCHA from "react-google-recaptcha"
 import { Button } from "../components/ui/Button"
 import { Input } from "../components/ui/Input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/Card"
+import { toast } from "react-toastify"
 
 const SITE_KEY = "6LerupwrAAAAADPDCl36QU7N5DxCl8zqMtzGmLtr"
 
@@ -19,6 +20,7 @@ const LoginPage = () => {
   const [success, setSuccess] = useState(false)
   const [loading, setLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
+  const [pendingApproval, setPendingApproval] = useState(false)
   const navigate = useNavigate()
 
   const handleChange = (e) => {
@@ -28,22 +30,30 @@ const LoginPage = () => {
   const handleCaptcha = (token) => {
     setCaptchaToken(token)
   }
-console.log('hi')
+
   const handleSubmit = async (e) => {
     e.preventDefault()
     if (!captchaToken) {
-      setError("Please complete the CAPTCHA verification")
-      setTimeout(() => setError(""), 3000)
+      toast.warning("Please complete the CAPTCHA verification")
       return
     }
 
     setLoading(true)
     try {
       const res = await axios.post("http://localhost:5000/api/auth/login", formData)
-      const { token, role } = res.data
+      const { token, role, isApproved, requiresApproval } = res.data
       localStorage.setItem("token", token)
 
+      if (requiresApproval) {
+        setPendingApproval(true)
+        toast.warning(
+          "Your responder account is pending admin approval. Please wait for approval to access responder features.",
+        )
+        return
+      }
+
       setSuccess(true)
+      toast.success("Login successful! Redirecting...")
       setTimeout(() => {
         setSuccess(false)
         if (role === "admin") navigate("/admin")
@@ -52,45 +62,65 @@ console.log('hi')
       }, 1500)
     } catch (err) {
       console.error(err)
-      setError("Invalid credentials. Please check your email and password.")
-      setTimeout(() => setError(""), 5000)
+      toast.error("Invalid credentials. Please check your email and password.")
     } finally {
       setLoading(false)
     }
   }
 
+  if (pendingApproval) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/5 via-background to-secondary/5 p-4">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95, y: 20 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="w-full max-w-md"
+        >
+          <Card className="shadow-2xl border-0 bg-card/50 backdrop-blur-sm">
+            <CardHeader className="text-center space-y-4">
+              <div className="mx-auto w-16 h-16 bg-orange-100 dark:bg-orange-950/20 rounded-full flex items-center justify-center">
+                <Clock className="h-8 w-8 text-orange-600" />
+              </div>
+              <div>
+                <CardTitle className="text-2xl font-bold">Account Pending Approval</CardTitle>
+                <CardDescription className="text-base">
+                  Your responder account is awaiting admin approval
+                </CardDescription>
+              </div>
+            </CardHeader>
+
+            <CardContent className="text-center space-y-6">
+              <div className="space-y-4">
+                <p className="text-muted-foreground">
+                  Thank you for registering as a responder! Your account has been created successfully, but it requires
+                  admin approval before you can access responder features.
+                </p>
+                
+              </div>
+
+              <div className="space-y-3">
+                <Button
+                  onClick={() => {
+                    localStorage.removeItem("token")
+                    setPendingApproval(false)
+                  }}
+                  className="w-full"
+                >
+                  Back to Login
+                </Button>
+             
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/5 via-background to-secondary/5 p-4">
-      {/* Status Messages */}
-      <AnimatePresence>
-        {error && (
-          <motion.div
-            className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50"
-            initial={{ opacity: 0, y: -50 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -50 }}
-          >
-            <div className="bg-destructive text-destructive-foreground px-6 py-3 rounded-lg shadow-lg flex items-center space-x-2">
-              <AlertCircle className="h-4 w-4" />
-              <span>{error}</span>
-            </div>
-          </motion.div>
-        )}
-        {success && (
-          <motion.div
-            className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50"
-            initial={{ opacity: 0, y: -50 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -50 }}
-          >
-            <div className="bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg flex items-center space-x-2">
-              <Shield className="h-4 w-4" />
-              <span>Login successful! Redirecting...</span>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
+    
       {/* Login Form */}
       <motion.div
         initial={{ opacity: 0, scale: 0.95, y: 20 }}

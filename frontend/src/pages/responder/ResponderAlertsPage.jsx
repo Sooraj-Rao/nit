@@ -9,6 +9,7 @@ import { Button } from "../../components/ui/Button"
 import { Badge } from "../../components/ui/Badge"
 import L from "leaflet"
 import "leaflet/dist/leaflet.css"
+import { toast } from "react-toastify"
 
 // Fix for Leaflet marker icons
 delete L.Icon.Default.prototype._getIconUrl
@@ -149,7 +150,7 @@ const ResponderAlertsPage = () => {
       setSelectedAlert(alert)
       setShowMapModal(true)
     } else {
-      alert("Location data not available for this alert")
+      toast.error("Location data not available for this alert")
     }
   }
 
@@ -187,7 +188,7 @@ const ResponderAlertsPage = () => {
       }
     } catch (err) {
       console.error("Failed to respond to alert:", err)
-      alert("Failed to mark as available.")
+      toast.error("Failed to mark as available.")
     }
   }
 
@@ -270,7 +271,7 @@ const ResponderAlertsPage = () => {
               <CardContent className="space-y-4">
                 <div className="space-y-2">
                   <div className="flex items-center justify-between text-sm">
-                    <div className="flex items-center space-x-2 flex-1">
+                    <div className="flex truncate items-center space-x-2 flex-1">
                       <MapPin className="h-4 w-4 text-muted-foreground" />
                       <span className="font-medium">Location:</span>
                       <span className="truncate">{place}</span>
@@ -435,7 +436,7 @@ const ResponderAlertsPage = () => {
       fetchUserAlerts()
     } catch (err) {
       console.error("Failed to assign responder", err)
-      alert("Failed to assign responder")
+      toast.error("Failed to assign responder")
     }
   }
 

@@ -1,49 +1,44 @@
-const express = require("express");
-const router = express.Router();
-const nodemailer = require("nodemailer");
-const crypto = require("crypto");
-const { authenticate } = require("../middleware/authMiddleware");
-const {
-  login,
-  register,
-  getCurrentUser,
-} = require("../controllers/authController");
-const User = require("../models/User");
-const Alert = require("../models/Alert");
-const UserAlert = require("../models/UserAlert");
+const express = require("express")
+const router = express.Router()
+const nodemailer = require("nodemailer")
+const crypto = require("crypto")
+const { authenticate, authorizeAdmin } = require("../middleware/authMiddleware")
+const { login, register, getCurrentUser, updateResponderApproval } = require("../controllers/authController")
+const User = require("../models/User")
+const Alert = require("../models/Alert")
+const UserAlert = require("../models/UserAlert")
 
 // In-memory OTP store
-const otpStore = {};
+const otpStore = {}
 
-// 🚑 Stats: Count users and responders
+router.put("/responder-approval/:userId", authenticate, authorizeAdmin, updateResponderApproval)
+
+// Stats: Count users and responders
 router.get("/stats", async (req, res) => {
   try {
-    const responders = await User.countDocuments({ role: "responder" });
-    const users = await User.countDocuments({ role: "user" });
-    const alerts = await Alert.countDocuments();
-    const userAlerts = await UserAlert.countDocuments();
+    const responders = await User.countDocuments({ role: "responder" })
+    const users = await User.countDocuments({ role: "user" })
+    const alerts = await Alert.countDocuments()
+    const userAlerts = await UserAlert.countDocuments()
 
-    res.json({ responders, users, alerts: alerts + userAlerts });
+    res.json({ responders, users, alerts: alerts + userAlerts })
   } catch (err) {
-    console.error("Stats error:", err);
-    res.status(500).json({ error: "Internal server error" });
+    console.error("Stats error:", err)
+    res.status(500).json({ error: "Internal server error" })
   }
-});
+})
 
-// ✅ Auth routes
-router.post("/register", register);
-router.post("/login", login);
-router.get("/me", authenticate, getCurrentUser);
+// Auth routes
+router.post("/register", register)
+router.post("/login", login)
+router.get("/me", authenticate, getCurrentUser)
 
-//
-// ✅ OTP: Send OTP + Welcome Email
-//
+// OTP: Send OTP + Welcome Email
 router.post("/send-otp", async (req, res) => {
-  const { email, name } = req.body;
-  if (!email || !name)
-    return res.status(400).json({ error: "Email and name are required" });
+  const { email, name } = req.body
+  if (!email || !name) return res.status(400).json({ error: "Email and name are required" })
 
-  const otp = crypto.randomInt(100000, 999999).toString();
+  const otp = crypto.randomInt(100000, 999999).toString()
 
   // Set up email transporter
   const transporter = nodemailer.createTransport({
@@ -52,10 +47,10 @@ router.post("/send-otp", async (req, res) => {
       user: process.env.ALERT_EMAIL,
       pass: process.env.ALERT_EMAIL_PASSWORD,
     },
-  });
+  })
 
   try {
-    // ✅ 1. Send OTP Email
+    // Send OTP Email
     await transporter.sendMail({
       from: process.env.ALERT_EMAIL,
       to: email,
@@ -68,9 +63,9 @@ router.post("/send-otp", async (req, res) => {
           <p>This code is valid for 5 minutes.</p>
         </div>
       `,
-    });
+    })
 
-    // ✅ 2. Send Welcome Email
+    // Send Welcome Email
     await transporter.sendMail({
       from: process.env.ALERT_EMAIL,
       to: email,
@@ -83,46 +78,43 @@ router.post("/send-otp", async (req, res) => {
           <p>Stay safe, stay connected. 🚨</p>
         </div>
       `,
-    });
+    })
 
-    // ✅ Store OTP temporarily
+    // Store OTP temporarily
     otpStore[email] = {
       code: otp,
       expiresAt: Date.now() + 5 * 60 * 1000,
-    };
+    }
 
-    res.json({ success: true });
+    res.json({ success: true })
   } catch (err) {
-    console.error("Error sending OTP/email:", err);
-    res.status(500).json({ error: "Failed to send OTP and welcome email" });
+    console.error("Error sending OTP/email:", err)
+    res.status(500).json({ error: "Failed to send OTP and welcome email" })
   }
-});
+})
 
-//
-// ✅ OTP: Verify
-//
+// OTP: Verify
 router.post("/verify-otp", async (req, res) => {
-  const { email, otp } = req.body;
-  if (!email || !otp)
-    return res.status(400).json({ error: "Email and OTP required" });
+  const { email, otp } = req.body
+  if (!email || !otp) return res.status(400).json({ error: "Email and OTP required" })
 
-  const record = otpStore[email];
+  const record = otpStore[email]
 
   if (!record) {
-    return res.status(400).json({ verified: false, message: "OTP not found" });
+    return res.status(400).json({ verified: false, message: "OTP not found" })
   }
 
   if (Date.now() > record.expiresAt) {
-    delete otpStore[email];
-    return res.status(400).json({ verified: false, message: "OTP expired" });
+    delete otpStore[email]
+    return res.status(400).json({ verified: false, message: "OTP expired" })
   }
 
   if (otp === record.code) {
-    delete otpStore[email];
-    return res.json({ verified: true });
+    delete otpStore[email]
+    return res.json({ verified: true })
   } else {
-    return res.status(400).json({ verified: false, message: "Invalid OTP" });
+    return res.status(400).json({ verified: false, message: "Invalid OTP" })
   }
-});
+})
 
-module.exports = router;
+module.exports = router

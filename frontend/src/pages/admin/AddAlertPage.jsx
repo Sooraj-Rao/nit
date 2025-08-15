@@ -31,6 +31,7 @@ import {
 import { Button } from "../../components/ui/Button";
 import { Input } from "../../components/ui/Input";
 import { Badge } from "../../components/ui/Badge";
+import { toast } from "react-toastify";
 
 // Fix for Leaflet marker icons
 delete L.Icon.Default.prototype._getIconUrl;
@@ -211,7 +212,7 @@ const AddAlertPage = () => {
       setSelectedAlert(alert);
       setShowMapModal(true);
     } else {
-      alert("Location data not available for this alert");
+      toast.error("Location data not available for this alert");
     }
   };
 
@@ -308,8 +309,9 @@ const AddAlertPage = () => {
       const res = await axios.get("http://localhost:5000/api/user-alerts", {
         headers: { Authorization: `Bearer ${token}` },
       });
-      const data = Array.isArray(res.data?.alerts)
-        ? res.data.alerts
+      console.log(res.data)
+      const data = Array.isArray(res.data)
+        ? res.data
         : Array.isArray(res.data)
         ? res.data
         : [];
@@ -319,6 +321,7 @@ const AddAlertPage = () => {
         location:
           typeof a.location === "string" ? JSON.parse(a.location) : a.location,
       }));
+      console.log(parsedData)
       setUserAlerts(parsedData);
     } catch (err) {
       console.error("Error fetching user alerts:", err);
@@ -360,13 +363,13 @@ const AddAlertPage = () => {
             headers: { Authorization: `Bearer ${token}` },
           }
         );
-        alert("Alert updated successfully");
+        toast.success("Alert updated successfully");
         setEditingAlertId(null);
       } else {
         await axios.post("http://localhost:5000/api/alerts", payload, {
           headers: { Authorization: `Bearer ${token}` },
         });
-        alert("Alert added successfully");
+        toast.success("Alert added successfully");
       }
 
       // Reset form
@@ -380,7 +383,7 @@ const AddAlertPage = () => {
       fetchAlerts();
     } catch (err) {
       console.error("Alert operation failed", err);
-      alert("Failed to process alert");
+      toast.error("Failed to process alert");
     } finally {
       setSubmitting(false);
     }
@@ -416,11 +419,11 @@ const AddAlertPage = () => {
       await axios.delete(`http://localhost:5000/api/alerts/${id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      alert("Alert deleted");
+      toast.success("Alert deleted");
       fetchAlerts();
     } catch (err) {
       console.error("Failed to delete alert", err);
-      alert("Failed to delete alert");
+      toast.error("Failed to delete alert");
     }
   };
 
@@ -442,12 +445,12 @@ const AddAlertPage = () => {
         }
       );
 
-      alert("Responder assigned successfully");
+      toast.success("Responder assigned successfully");
       fetchAlerts();
       fetchUserAlerts();
     } catch (err) {
       console.error("Failed to assign responder", err);
-      alert("Failed to assign responder");
+      toast.error("Failed to assign responder");
     }
   };
 
@@ -576,7 +579,7 @@ const AddAlertPage = () => {
       <CardContent className="space-y-4">
         <div className="space-y-2">
           <div className="flex items-center justify-between text-sm">
-            <div className="flex items-center space-x-2 flex-1">
+            <div className="flex items-center truncate space-x-2 flex-1">
               <MapPin className="h-4 w-4 text-muted-foreground" />
               <span className="font-medium">Address:</span>
               <span className="truncate">

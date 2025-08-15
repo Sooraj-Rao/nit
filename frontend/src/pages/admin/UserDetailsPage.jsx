@@ -21,6 +21,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../..
 import { Button } from "../../components/ui/Button"
 import { Input } from "../../components/ui/Input"
 import { Badge } from "../../components/ui/Badge"
+import { toast } from "react-toastify"
 
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, PointElement, LineElement, BarElement)
 
@@ -49,6 +50,7 @@ const UserDetailsPage = () => {
       setDonations(donationRes.data || [])
     } catch (error) {
       console.error("Failed to fetch data:", error)
+      toast.error("Failed to load data")
       setEvents([])
       setDonations([])
     } finally {
@@ -67,27 +69,28 @@ const UserDetailsPage = () => {
 
     try {
       await axios.post("http://localhost:5000/api/events", formData)
-      alert("Event added successfully!")
+      toast.success("Event added successfully!")
       setForm({ name: "", place: "", date: "" })
       setPoster(null)
       fetchData()
     } catch (error) {
       console.error("Error adding event:", error)
-      alert("Error adding event")
+      toast.error("Error adding event")
     } finally {
       setSubmitting(false)
     }
   }
 
   const handleDelete = async (id) => {
-    if (window.confirm("Are you sure you want to delete this event?")) {
-      try {
-        await axios.delete(`http://localhost:5000/api/events/${id}`)
-        fetchData()
-      } catch (error) {
-        console.error("Failed to delete event:", error)
-        alert("Failed to delete event")
-      }
+    if (!window.confirm("Are you sure you want to delete this event?")) return
+
+    try {
+      await axios.delete(`http://localhost:5000/api/events/${id}`)
+      toast.success("Event deleted successfully")
+      fetchData()
+    } catch (error) {
+      console.error("Failed to delete event:", error)
+      toast.error("Failed to delete event")
     }
   }
 
@@ -102,9 +105,10 @@ const UserDetailsPage = () => {
         const pdf = new jsPDF("p", "pt", "a4")
         pdf.addImage(imgData, "PNG", 10, 10, 580, 800)
         pdf.save("donation_report.pdf")
+        toast.success("PDF report generated successfully!")
       } catch (error) {
         console.error("Error generating PDF:", error)
-        alert("Failed to generate PDF")
+        toast.error("Failed to generate PDF")
       }
     }, 500)
   }
