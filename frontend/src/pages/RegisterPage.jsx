@@ -194,9 +194,8 @@ const RegisterPage = () => {
                   {requiresApproval ? "Back to Login" : "Sign In Now"}
                 </Button>
                 <p className="text-xs text-muted-foreground">
-                  {requiresApproval
-                    ? "You can still sign in, but responder features will be available after approval."
-                    : "Ready to make a difference in emergency situations."}
+                  {!requiresApproval
+                    && "Ready to make a difference in emergency situations."}
                 </p>
               </div>
             </CardContent>

@@ -82,7 +82,7 @@ const ChatBox = ({ alertId, currentUser }) => {
   };
 
   return (
-    <div className="chat-box border rounded p-4 mt-4 bg-white shadow w-full max-w-xl mx-auto">
+    <div className="chat-box border rounded p-4 mt-4  shadow w-full max-w-xl mx-auto">
       <div className="messages h-64 overflow-y-auto px-2 space-y-2">
         {messages.map((msg, idx) => {
           const isSender = msg.sender === currentUser?.name;
@@ -112,7 +112,7 @@ const ChatBox = ({ alertId, currentUser }) => {
       <div className="flex gap-2 mt-3">
         <input
           type="text"
-          className="flex-1 border p-2 rounded"
+          className="flex-1 border p-2 rounded text-black"
           placeholder="Type your message..."
           value={newMsg}
           onChange={(e) => {
